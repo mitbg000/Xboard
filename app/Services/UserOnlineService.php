@@ -12,6 +12,7 @@ class UserOnlineService
      * 缓存相关常量
      */
     private const CACHE_PREFIX = 'ALIVE_IP_USER_';
+    private const DATA_EXPIRY = 30;
 
     /**
      * 获取所有限制设备用户的在线数量
@@ -28,7 +29,7 @@ class UserOnlineService
 
         return collect(cache()->many($cacheKeys))
             ->filter()
-            ->map(fn(array $data): ?int => $data['alive_ip'] ?? null)
+            ->map(fn(array $data): int => self::calculateDeviceCount($data))
             ->filter()
             ->mapWithKeys(fn(int $count, string $key): array => [
                 (int) Str::after($key, self::CACHE_PREFIX) => $count
@@ -47,7 +48,7 @@ class UserOnlineService
         }
 
         $devices = collect($data)
-            ->filter(fn(mixed $item): bool => is_array($item) && isset($item['aliveips']))
+            ->filter(fn(mixed $item): bool => is_array($item) && isset($item['aliveips']) && isset($item['lastupdateAt']) && (time() - $item['lastupdateAt'] < self::DATA_EXPIRY))
             ->flatMap(function (array $nodeData, string $nodeKey): array {
                 return collect($nodeData['aliveips'])
                     ->mapWithKeys(function (string $ipNodeId) use ($nodeData, $nodeKey): array {
@@ -66,7 +67,7 @@ class UserOnlineService
             ->all();
 
         return [
-            'total_count' => $data['alive_ip'] ?? 0,
+            'total_count' => self::calculateDeviceCount($data),
             'devices' => $devices
         ];
     }
@@ -83,7 +84,7 @@ class UserOnlineService
 
         return collect(cache()->many($cacheKeys))
             ->filter()
-            ->map(fn(array $data): int => $data['alive_ip'] ?? 0)
+            ->map(fn(array $data): int => self::calculateDeviceCount($data))
             ->all();
     }
 
@@ -93,7 +94,7 @@ class UserOnlineService
     public function getOnlineCount(int $userId): int
     {
         $data = cache()->get(self::CACHE_PREFIX . $userId, []);
-        return $data['alive_ip'] ?? 0;
+        return self::calculateDeviceCount($data);
     }
 
     /**
@@ -103,9 +104,14 @@ class UserOnlineService
     {
         $mode = (int) admin_setting('device_limit_mode', 0);
 
-        return match ($mode) {
+        // Remove 'alive_ip' key if exists to avoid processing it
+        unset($ipsArray['alive_ip']);
+
+        $result = match ($mode) {
+            // Mode 1: Count unique IPs per node (relaxed mode)
+            // Same IP on different nodes = multiple devices
             1 => collect($ipsArray)
-                ->filter(fn(mixed $data): bool => is_array($data) && isset($data['aliveips']))
+                ->filter(fn(mixed $data): bool => is_array($data) && isset($data['aliveips']) && isset($data['lastupdateAt']) && (time() - $data['lastupdateAt'] < self::DATA_EXPIRY))
                 ->flatMap(
                     fn(array $data): array => collect($data['aliveips'])
                         ->map(fn(string $ipNodeId): string => Str::before($ipNodeId, '_'))
@@ -114,10 +120,24 @@ class UserOnlineService
                 )
                 ->unique()
                 ->count(),
-            0 => collect($ipsArray)
-                ->filter(fn(mixed $data): bool => is_array($data) && isset($data['aliveips']))
-                ->sum(fn(array $data): int => count($data['aliveips'])),
-            default => throw new \InvalidArgumentException("Invalid device limit mode: $mode"),
+            // Mode 0 & default: Count by node connections (optimized mode)
+            // Each node with connections = 1 device
+            // Same user on same node = 1 device, different node = another device
+            default => collect($ipsArray)
+                ->filter(fn(mixed $data): bool => is_array($data) && isset($data['aliveips']) && !empty($data['aliveips']) && isset($data['lastupdateAt']) && (time() - $data['lastupdateAt'] < self::DATA_EXPIRY))
+                ->count(),
         };
+
+        // Debug logging (only log if processing actual data)
+        if (!empty($ipsArray)) {
+            $allIps = collect($ipsArray)
+                ->filter(fn(mixed $data): bool => is_array($data) && isset($data['aliveips']) && isset($data['lastupdateAt']) && (time() - $data['lastupdateAt'] < self::DATA_EXPIRY))
+                ->flatMap(fn(array $data): array => $data['aliveips'])
+                ->map(fn(string $ipNodeId): string => Str::before($ipNodeId, '_')) 
+                ->unique()
+                ->values()
+                ->all();
+        }
+        return $result;
     }
 }
