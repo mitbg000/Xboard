@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Plan;
 use App\Models\TrafficResetLog;
 use App\Models\User;
+use App\Services\MailService;
 use App\Services\Plugin\HookManager;
 use App\Utils\Helper;
 use Illuminate\Support\Facades\DB;
@@ -183,6 +184,16 @@ class OrderService
         }
 
         HookManager::call('order.open.after', $order);
+
+        try {
+            app(MailService::class)->orderCompleted($order);
+        } catch (\Throwable $e) {
+            Log::error('发送订单完成邮件失败', [
+                'order_id' => $order->id,
+                'trade_no' => $order->trade_no,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
 

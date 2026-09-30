@@ -1,0 +1,1 @@
+{"version":1,"defects":{"Tests\\Feature\\HealthCheckTest::test_database_can_run_a_simple_query":8},"times":{"Tests\\Feature\\HealthCheckTest::test_database_can_run_a_simple_query":0.034}}

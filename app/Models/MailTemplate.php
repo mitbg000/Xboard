@@ -39,6 +39,11 @@ class MailTemplate extends Model
             'required_vars' => ['link'],
             'optional_vars' => ['name', 'url'],
         ],
+        'orderPaid' => [
+            'label' => '订单完成通知',
+            'required_vars' => ['order_no', 'plan_name', 'price', 'expired_at', 'used_traffic', 'total_traffic'],
+            'optional_vars' => ['name', 'description', 'url', 'intro'],
+        ],
     ];
 
     /**

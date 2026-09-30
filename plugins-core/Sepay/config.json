@@ -1,0 +1,8 @@
+{
+    "name": "SePay",
+    "code": "sepay",
+    "type": "payment",
+    "version": "1.0.0",
+    "description": "SePay.vn payment gateway plugin with QR code support",
+    "author": "mitbg000 Team"
+}

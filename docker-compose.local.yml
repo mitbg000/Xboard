@@ -1,0 +1,40 @@
+services:
+  mariadb:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: mitveepn
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb-data:/var/lib/mysql
+
+  xboard:
+    image: ghcr.io/cedar2025/xboard:latest
+    restart: unless-stopped
+    ports:
+      - "80:7001"
+      - "7001:7001"
+    volumes:
+      - ./:/www
+      - redis-data:/data
+    depends_on:
+      - mariadb
+    environment:
+      RESOURCE_PROFILE: balanced
+      ENABLE_HORIZON: "true"
+      docker: "true"
+      DB_CONNECTION: mysql
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_DATABASE: mitveepn
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      REDIS_HOST: /data/redis.sock
+      REDIS_PORT: 0
+      INSTALLED: "1"
+
+volumes:
+  mariadb-data:
+  redis-data:

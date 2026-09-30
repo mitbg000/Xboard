@@ -1,0 +1,8 @@
+{
+    "name": "PayPal V2",
+    "code": "paypal",
+    "type": "payment",
+    "version": "1.0.2",
+    "description": "Thanh toán qua cổng quốc tế PayPal (Checkout v2)",
+    "author": "Antigravity Assistant"
+}

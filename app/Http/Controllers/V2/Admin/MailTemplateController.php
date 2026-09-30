@@ -129,6 +129,7 @@ class MailTemplateController extends Controller
             'remindExpire' => "{$appName} - 到期提醒测试",
             'remindTraffic' => "{$appName} - 流量提醒测试",
             'mailLogin' => "{$appName} - 登录链接测试",
+            'orderPaid' => "{$appName} - 订单完成测试",
             default => "{$appName} - 邮件测试",
         };
     }
@@ -162,6 +163,18 @@ class MailTemplateController extends Controller
                 'link' => $appUrl . '/login?token=test-token',
                 'url' => $appUrl,
             ],
+            'orderPaid' => [
+                'name' => $appName,
+                'description' => '订单完成通知测试',
+                'order_no' => 'TEST202609270001',
+                'plan_name' => 'Premium Plan',
+                'price' => '9.99',
+                'expired_at' => now()->addMonth()->format('Y-m-d H:i:s'),
+                'used_traffic' => '12.34 GB',
+                'total_traffic' => '100 GB',
+                'url' => $appUrl,
+                'intro' => $appName,
+            ],
             default => ['name' => $appName, 'url' => $appUrl],
         };
     }
@@ -175,6 +188,7 @@ class MailTemplateController extends Controller
             'remindExpire' => "{$appName} - 服务即将到期",
             'remindTraffic' => "{$appName} - 流量使用提醒",
             'mailLogin' => "{$appName} - 邮件登录",
+            'orderPaid' => "{$appName} - 订单完成",
             default => "{$appName}",
         };
     }
@@ -260,6 +274,7 @@ HTML;
             'remindExpire' => $layout('服务到期提醒', '您的服务即将在24小时内到期，如需继续使用请及时续费。'),
             'remindTraffic' => $layout('流量使用提醒', '您的流量使用已达到80%，请注意流量使用情况。'),
             'mailLogin' => $layout('登入到{{name}}', '您正在登入到{{name}}, 请在 5 分钟内点击下方链接进行登入。如果您未授权该登入请求，请无视。<a href="{{link}}">{{link}}</a>'),
+            'orderPaid' => $layout('订单完成通知', '您的订单已完成支付与开通。<br /><br />订单号：{{order_no}}<br />套餐名称：{{plan_name}}<br />订单金额：{{price}}<br />到期时间：{{expired_at}}<br />流量使用：{{used_traffic}} / {{total_traffic}}'),
             default => $layout('通知', '{{content}}'),
         };
     }

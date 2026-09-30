@@ -5,8 +5,11 @@ namespace App\Services;
 use App\Jobs\SendEmailJob;
 use App\Models\MailLog;
 use App\Models\MailTemplate;
+use App\Models\Order;
+use App\Models\Plan;
 use App\Models\User;
 use App\Utils\CacheKey;
+use App\Utils\Helper;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
@@ -203,6 +206,40 @@ class MailService
             'template_value' => [
                 'name' => admin_setting('app_name', 'XBoard'),
                 'url' => admin_setting('app_url')
+            ]
+        ]);
+    }
+
+    public function orderCompleted(Order $order): void
+    {
+        $user = User::find($order->user_id);
+        $plan = Plan::find($order->plan_id);
+
+        if (!$user || !$user->email || !$plan) {
+            return;
+        }
+
+        $usedTraffic = Helper::trafficConvert((float) (($user->u ?? 0) + ($user->d ?? 0)));
+        $totalTraffic = Helper::trafficConvert((float) ($user->transfer_enable ?? 0));
+        $expiredAt = $user->expired_at ? date('Y-m-d H:i:s', (int) $user->expired_at) : __('Never');
+
+        SendEmailJob::dispatch([
+            'email' => $user->email,
+            'subject' => __(':app_name - Payment Successful', [
+                'app_name' => admin_setting('app_name', 'XBoard')
+            ]),
+            'template_name' => 'orderPaid',
+            'template_value' => [
+                'name' => admin_setting('app_name', 'XBoard'),
+                'description' => admin_setting('app_description', ''),
+                'order_no' => $order->trade_no,
+                'plan_name' => $plan->name,
+                'price' => number_format(((float) $order->total_amount) / 100, 2),
+                'expired_at' => $expiredAt,
+                'used_traffic' => $usedTraffic,
+                'total_traffic' => $totalTraffic,
+                'url' => admin_setting('app_url', url('/')),
+                'intro' => admin_setting('app_description', admin_setting('app_name', 'XBoard')),
             ]
         ]);
     }
