@@ -11,7 +11,7 @@ services:
       - mariadb-data:/var/lib/mysql
 
   xboard:
-    image: ghcr.io/cedar2025/xboard:latest
+    image: ghcr.io/mitbg000/xboard:latest
     restart: unless-stopped
     ports:
       - "80:7001"

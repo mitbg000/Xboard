@@ -24,7 +24,7 @@ services:
       - "6380:6379"
 
   app:
-    image: ghcr.io/cedar2025/xboard:latest
+    image: ghcr.io/mitbg000/xboard:latest
     container_name: xboard-test-app
     working_dir: /var/www
     volumes:
